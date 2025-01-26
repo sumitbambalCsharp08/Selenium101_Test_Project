@@ -2,51 +2,81 @@ using OpenQA.Selenium;
 using OpenQA.Selenium.Chrome;
 using OpenQA.Selenium.Edge;
 using OpenQA.Selenium.Interactions;
+using OpenQA.Selenium.Remote;
 using OpenQA.Selenium.Support.UI;
 
 namespace Selenium101_Test_Project.SeleniumAutomation
 {
     public class Tests
     {
-        IWebDriver ?driver;
-        TestLocators testLocator;
+        public static string LT_USERNAME = Environment.GetEnvironmentVariable("LT_USERNAME") ?? "sumitbambal123";
+        public static string LT_ACCESS_KEY = Environment.GetEnvironmentVariable("LT_ACCESS_KEY") ?? "m6uRYZfckcMaesux5Iyya9RR9x9NO1ToWrNZO6m1XAmvu1dSD8";
+        public static bool tunnel = bool.Parse(Environment.GetEnvironmentVariable("LT_TUNNEL") ?? "false");
+        public static string build = Environment.GetEnvironmentVariable("LT_BUILD") ?? "LambdatestBuildChrome";
+        public static string seleniumUri = "https://hub.lambdatest.com:443/wd/hub";
+        IWebDriver? driver;
+        TestLocators? testLocator;
+        private string browser = string.Empty;
+        private string version = string.Empty;
+        private string os = string.Empty;
 
         [SetUp]
-        public void Setup()
+        public void Init()
         {
-            EdgeOptions capabilities = new EdgeOptions();
-     //       ChromeOptions capabilities = new ChromeOptions();
+            ChromeOptions capabilities = new ChromeOptions();
             capabilities.BrowserVersion = "dev";
-            Dictionary<string, object> ltOptions = new Dictionary<string, object>();
-            ltOptions.Add("username", "sumitbambal123");
-            ltOptions.Add("accessKey", "m6uRYZfckcMaesux5Iyya9RR9x9NO1ToWrNZO6m1XAmvu1dSD8");
-            ltOptions.Add("platformName", "Windows 10");
-            ltOptions.Add("project", "Untitled");
-            ltOptions.Add("w3c", true);
-            ltOptions.Add("plugin", "c#-nunit");
-            capabilities.AddAdditionalOption("LT:Options", ltOptions);
-            driver = new EdgeDriver(capabilities);
-            testLocator = new TestLocators(driver);
-            driver.Navigate().GoToUrl("https://www.lambdatest.com/selenium-playground/");
-            driver.Manage().Window.Maximize();
+            Dictionary<string, object> ltOptions = new Dictionary<string, object>
+                {
+                    { "username", LT_USERNAME },
+                    { "accessKey", LT_ACCESS_KEY },
+                    { "platformName", "Windows 10" },
+                    { "project", "Selenium101_Test_Project" },
+                    { "w3c", true },
+                    { "plugin", "c#-nunit" }
+                };
+
+            if (tunnel)
+            {
+                ltOptions.Add("tunnel", tunnel);
+            }
+            if (build != null)
+            {
+                ltOptions.Add("build", build);
+            }
+
+            capabilities.AddAdditionalOption("lt:options", ltOptions);
+
+            capabilities.AddAdditionalOption("name",
+                string.Format("{0}:{1}",
+                TestContext.CurrentContext.Test.ClassName,
+                TestContext.CurrentContext.Test.MethodName));
+
+            driver = new RemoteWebDriver(new Uri(seleniumUri), capabilities.ToCapabilities(), TimeSpan.FromSeconds(600));
+            Console.Out.WriteLine(driver);
         }
 
         [Test]
         public void TestScenario1()
         {
-            //Arrange
-            //Act
+            // Arrange
+            testLocator = new TestLocators(driver);
+            driver.Navigate().GoToUrl("https://www.lambdatest.com/selenium-playground/");
+            driver.Manage().Window.Maximize();
+            // Act
             testLocator.Click(testLocator.SimpleFrmDemo);
             testLocator.EnterText(testLocator.SimplefrmIp, "Welcome to LambdaTest");
             testLocator.Click(testLocator.GetCheckedValue);
-            //Assert
+            // Assert
             Assert.That(driver.Url, Does.Contain("simple-form-demo"));
             Assert.That(testLocator.SampleMsg.Text, Is.EqualTo("Welcome to LambdaTest"));
         }
-
         [Test]
         public void TestScenario2()
         {
+            // Arrange
+            testLocator = new TestLocators(driver);
+            driver.Navigate().GoToUrl("https://www.lambdatest.com/selenium-playground/");
+            driver.Manage().Window.Maximize();
             //Act
             testLocator.Click(testLocator.DragAndDrop);
             Actions action = new Actions(driver);
@@ -59,6 +89,10 @@ namespace Selenium101_Test_Project.SeleniumAutomation
         [Test]
         public void TestScenario3()
         {
+            // Arrange
+            testLocator = new TestLocators(driver);
+            driver.Navigate().GoToUrl("https://www.lambdatest.com/selenium-playground/");
+            driver.Manage().Window.Maximize();
             //Act
             testLocator.Click(testLocator.InputForm);
             testLocator.Click(testLocator.SubmitForm);
@@ -91,10 +125,11 @@ namespace Selenium101_Test_Project.SeleniumAutomation
 
         }
 
+
         [TearDown]
-        public void TearDown()
+        public void Close()
         {
-            driver.Close();
+            driver?.Close();
         }
     }
 }
