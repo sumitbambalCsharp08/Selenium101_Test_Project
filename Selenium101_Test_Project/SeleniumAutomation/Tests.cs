@@ -1,12 +1,17 @@
 using OpenQA.Selenium;
 using OpenQA.Selenium.Chrome;
 using OpenQA.Selenium.Edge;
+using OpenQA.Selenium.Firefox;
 using OpenQA.Selenium.Interactions;
 using OpenQA.Selenium.Remote;
 using OpenQA.Selenium.Support.UI;
 
 namespace Selenium101_Test_Project.SeleniumAutomation
 {
+    [TestFixture("chrome")]
+    [TestFixture("firefox")]
+    [TestFixture("edge")]
+    [Parallelizable(ParallelScope.All)]
     public class Tests
     {
         public static string LT_USERNAME = Environment.GetEnvironmentVariable("LT_USERNAME") ?? "sumitbambal123";
@@ -14,26 +19,44 @@ namespace Selenium101_Test_Project.SeleniumAutomation
         public static bool tunnel = bool.Parse(Environment.GetEnvironmentVariable("LT_TUNNEL") ?? "false");
         public static string build = Environment.GetEnvironmentVariable("LT_BUILD") ?? "LambdatestBuildChrome";
         public static string seleniumUri = "https://hub.lambdatest.com:443/wd/hub";
+ 
         IWebDriver? driver;
         TestLocators? testLocator;
-        private string browser = string.Empty;
-        private string version = string.Empty;
-        private string os = string.Empty;
+        private string currentBrowser = "chrome";
+        public Tests(string currentBrowser)
+        {
+            this.currentBrowser = currentBrowser;
+        }
 
         [SetUp]
         public void Init()
         {
-            ChromeOptions capabilities = new ChromeOptions();
+            DriverOptions capabilities;
+            switch (currentBrowser?.ToLower())
+            {
+                case "chrome":
+                    capabilities = new ChromeOptions();
+                    break;
+                case "firefox":
+                    capabilities = new FirefoxOptions();
+                    break;
+                case "edge":
+                    capabilities = new EdgeOptions();
+                    break;
+                default:
+                    throw new ArgumentException("Browser not supported");
+            }
+
             capabilities.BrowserVersion = "dev";
             Dictionary<string, object> ltOptions = new Dictionary<string, object>
-                {
-                    { "username", LT_USERNAME },
-                    { "accessKey", LT_ACCESS_KEY },
-                    { "platformName", "Windows 10" },
-                    { "project", "Selenium101_Test_Project" },
-                    { "w3c", true },
-                    { "plugin", "c#-nunit" }
-                };
+            {
+                { "username", LT_USERNAME },
+                { "accessKey", LT_ACCESS_KEY },
+                { "platformName", "Windows 10" },
+                { "project", "Selenium101_Test_Project" },
+                { "w3c", true },
+                { "plugin", "c#-nunit" }
+            };
 
             if (tunnel)
             {
@@ -45,7 +68,6 @@ namespace Selenium101_Test_Project.SeleniumAutomation
             }
 
             capabilities.AddAdditionalOption("lt:options", ltOptions);
-
             capabilities.AddAdditionalOption("name",
                 string.Format("{0}:{1}",
                 TestContext.CurrentContext.Test.ClassName,
